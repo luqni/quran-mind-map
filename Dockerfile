@@ -42,10 +42,11 @@ RUN cp .env.example .env || true
 # Generate application key if not set (Though APP_KEY should be an env var)
 # RUN php artisan key:generate
 
-# Fix permissions for storage and cache (Critical for 500 errors)
+# Fix permissions for storage, cache, AND database file (Critical for SQLite)
 USER root
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+RUN touch /var/www/html/database/database.sqlite \
+    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database/database.sqlite \
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database/database.sqlite
 USER www-data
 
 # SHOW ERRORS for debugging (EasyPanel captures stderr)
