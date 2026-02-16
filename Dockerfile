@@ -15,13 +15,9 @@ WORKDIR /var/www/html
 # Switch to root to install system dependencies
 USER root
 
-# Install dependencies required for Mind Map import (XML, Zip) and standard extensions
-# serversideup image usually provides extensions via php-extension-installer or generic names
+# Install dependencies required for Composer and build tools
+# serversideup/php image comes with xml, zip, bcmath, intl pre-installed!
 RUN apt-get update && apt-get install -y \
-    php-xml \
-    php-zip \
-    php-bcmath \
-    php-intl \
     unzip \
     git \
     && apt-get clean \
