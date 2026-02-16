@@ -16,11 +16,12 @@ WORKDIR /var/www/html
 USER root
 
 # Install dependencies required for Mind Map import (XML, Zip) and standard extensions
+# serversideup image usually provides extensions via php-extension-installer or generic names
 RUN apt-get update && apt-get install -y \
-    php8.2-xml \
-    php8.2-zip \
-    php8.2-bcmath \
-    php8.2-intl \
+    php-xml \
+    php-zip \
+    php-bcmath \
+    php-intl \
     unzip \
     git \
     && apt-get clean \
