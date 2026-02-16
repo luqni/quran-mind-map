@@ -1,0 +1,44 @@
+Reading file...
+Parsing XML...
+No wind tag found.
+Text: Surat al Fatihah 7 ayat tentang garis-garis besar ... | Indent: 0 | Level: 0
+No wind tag found.
+Text: Akidah: ayat 1-4... | Indent: 0 | Level: 0
+No wind tag found.
+Text: Ibadah: ayat 5... | Indent: 0 | Level: 0
+No wind tag found.
+Text: Kurikulum  6-7... | Indent: 0 | Level: 0
+No wind tag found.
+Text: Surat al Baqarah 286 Ayat tentang Kekhalifahan di ... | Indent: 0 | Level: 0
+No wind tag found.
+Text: Ayat 1-20: Golongan manusia dalam... | Indent: 0 | Level: 0
+Found wind tag. Attributes: {"@attributes":{"hanging":"425","left":"1134"}}
+Text: Ayat 1-5: Orang beriman... | Indent: 1134 | Level: 3
+Found wind tag. Attributes: {"@attributes":{"hanging":"425","left":"1134"}}
+Text: Ayat 6-7: Orang kafir... | Indent: 1134 | Level: 3
+Found wind tag. Attributes: {"@attributes":{"hanging":"425","left":"1134"}}
+Text: Ayat 8-20: Orang munafiq... | Indent: 1134 | Level: 3
+No wind tag found.
+Text: Ayat 21-39: Penghambaan dan Urgensinya:... | Indent: 0 | Level: 0
+Found wind tag. Attributes: {"@attributes":{"hanging":"414","left":"1134"}}
+Text: Ayat 21-29:  Penghambaan dan urgensinya... | Indent: 1134 | Level: 3
+Found wind tag. Attributes: {"@attributes":{"hanging":"414","left":"1134"}}
+Text: Ayat 30-39: Kisah awal mula penghambaan... | Indent: 1134 | Level: 3
+No wind tag found.
+Text: Ayat 40-152: Pengabulan do’a dan hakikat pengham... | Indent: 0 | Level: 0
+No wind tag found.
+Text: Contoh yang... | Indent: 0 | Level: 0
+No wind tag found.
+Text: Ayat 40-103: Pelanggaran perjanjian Bani Israil... | Indent: 0 | Level: 0
+No wind tag found.
+Text: Ayat 104-123: Hakikat penghambaan Bani Israil... | Indent: 0 | Level: 0
+No wind tag found.
+Text: Contoh yang... | Indent: 0 | Level: 0
+No wind tag found.
+Text: Ayat 124-141: Kisah nabi Ibrahim... | Indent: 0 | Level: 0
+No wind tag found.
+Text: Ayat 142-152: Kisah kiblat... | Indent: 0 | Level: 0
+No wind tag found.
+Text: Ayat 153-253: Keuniversalan ibadah untuk semua sen... | Indent: 0 | Level: 0
+No wind tag found.
+Text: Ayat 153-158: Ujian hidup... | Indent: 0 | Level: 0
