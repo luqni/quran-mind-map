@@ -42,5 +42,15 @@ RUN cp .env.example .env || true
 # Generate application key if not set (Though APP_KEY should be an env var)
 # RUN php artisan key:generate
 
+# Fix permissions for storage and cache (Critical for 500 errors)
+USER root
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+USER www-data
+
+# SHOW ERRORS for debugging (EasyPanel captures stderr)
+ENV PHP_DISPLAY_ERRORS=On
+ENV PHP_ERROR_REPORTING="E_ALL"
+
 # Expose port 8080 (Default for serversideup/php)
 EXPOSE 8080
