@@ -92,25 +92,31 @@
 <body class="h-screen flex flex-col overflow-hidden">
 
      <!-- Header -->
-    <header class="bg-white border-b border-gray-200 h-16 flex items-center px-6 shadow-sm z-10 relative justify-between">
-        <div class="flex items-center gap-3">
-            <button id="sidebar-toggle" class="p-2 rounded-lg hover:bg-gray-100 text-gray-500 mr-2 focus:outline-none">
+    <header class="bg-white border-b border-gray-200 h-14 md:h-16 flex items-center px-4 md:px-6 shadow-sm z-10 relative justify-between">
+        <div class="flex items-center gap-2 md:gap-3">
+            <button id="sidebar-toggle" class="p-2 rounded-lg hover:bg-gray-100 text-gray-500 mr-1 md:mr-2 focus:outline-none">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
             </button>
-            <img src="/logo.png" alt="Logo" class="h-10 w-10">
+            <img src="/logo.png" alt="Logo" class="h-8 w-8 md:h-10 md:w-10">
             <div>
-                <h1 class="text-xl font-bold text-gray-800">Quran Mind Map</h1>
-                <p class="text-xs text-gray-500">Visualisasi Peta Konsep Al-Qur'an</p>
+                <h1 class="text-lg md:text-xl font-bold text-gray-800 leading-tight">Quran Mind Map</h1>
+                <p class="text-[10px] md:text-xs text-gray-500 hidden sm:block">Visualisasi Peta Konsep Al-Qur'an</p>
             </div>
         </div>
-        <div class="flex items-center gap-3">
-            <button id="fit-screen-btn" class="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-2 shadow-sm">
+        <div class="flex items-center gap-2 md:gap-3">
+            <button id="print-btn" class="p-2 md:px-4 md:py-2 bg-white text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 shadow-sm" title="Print Mind Map">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                <span class="font-medium hidden md:inline">Print</span>
+            </button>
+            <button id="fit-screen-btn" class="p-2 md:px-4 md:py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-2 shadow-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                 </svg>
-                <span class="font-medium">Fit to Screen</span>
+                <span class="font-medium hidden md:inline">Fit to Screen</span>
             </button>
         </div>
     </header>
@@ -530,9 +536,25 @@
                 d.children = null
             }
         }
+
+        // Toggle children on click.
+        function click(event, d) {
+            if (d.children) {
+                d._children = d.children;
+                d.children = null;
+            } else {
+                d.children = d._children;
+                d._children = null;
+            }
+            update(d);
+            
+            // Auto zoom/center on the clicked node
+            centerNode(d);
+        }
+
         // Fit to Screen button handler
         document.getElementById('fit-screen-btn').addEventListener('click', () => {
-            centerNode(root);
+            centerTree();
         });
 
         // Zoom In button handler
@@ -542,12 +564,20 @@
 
         // Zoom Out button handler
         document.getElementById('zoom-out-btn').addEventListener('click', () => {
-            svg.transition().duration(300).call(zoom.scaleBy, 0.7); // scaleBy is simpler
+            svg.transition().duration(300).call(zoom.scaleBy, 0.7); 
         });
 
-        function centerTree() {
+        // Print button handler
+        // Print button handler
+        document.getElementById('print-btn').addEventListener('click', () => {
+             // Center tree instantly before printing for best view
+             centerTree(false); 
+             // Small delay to allow DOM to update
+             setTimeout(() => window.print(), 100);
+        });
+
+        function centerTree(animate = true) {
             // Get bounding box of all visible nodes
-            // Since we are hiding root/wrapper, we want to center on the visible group
             const bounds = g.node().getBBox();
             const parent = svg.node().parentElement;
             const fullWidth = parent.clientWidth;
@@ -558,23 +588,41 @@
             const midX = bounds.x + width / 2;
             const midY = bounds.y + height / 2;
 
-            if (width == 0 || height == 0) return; // Nothing to center
+            if (width == 0 || height == 0) return; 
 
             const scale = 0.85 / Math.max(width / fullWidth, height / fullHeight);
             const translate = [fullWidth / 2 - scale * midX, fullHeight / 2 - scale * midY];
+
+            if (animate) {
+                svg.transition()
+                    .duration(750)
+                    .call(zoom.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+            } else {
+                 svg.call(zoom.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+            }
+        }
+
+        function centerNode(source) {
+            // Center the specific node in the view
+            const parent = svg.node().parentElement;
+            const fullWidth = parent.clientWidth;
+            const fullHeight = parent.clientHeight;
+            
+            // Use current zoom scale
+            const currentTransform = d3.zoomTransform(svg.node());
+            const scale = currentTransform.k; 
+            
+            // Calculate translation to put node at center
+            const translate = [
+                fullWidth / 2 - scale * source.y,
+                fullHeight / 2 - scale * source.x
+            ];
 
             svg.transition()
                 .duration(750)
                 .call(zoom.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
         }
 
-        function centerNode(source) {
-            // Re-use centerTree logic or valid centerNode logic
-            // But centerTree is better for "Fit to Screen"
-            centerTree(); 
-        }
-
     </script>
-
 </body>
 </html>
