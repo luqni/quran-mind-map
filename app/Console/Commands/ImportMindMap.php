@@ -172,20 +172,42 @@ class ImportMindMap extends Command
             // Remove the numbering prefix for cleaner labels
             $cleanText = preg_replace('/^(\\d+\\.|[a-z]\\.|[0-9]+\\))\\s+/i', '', $text);
             
-            // Pattern: "Ayat 1-5: Theme" or "Ayat 1-5 Theme"
-            if (preg_match('/Ayat\\s*(\\d+)\\s*-\\s*(\\d+)\\s*[:.]?\\s*(.*)/i', $cleanText, $matches)) {
+            // Pattern: "Ayat 1-5: Theme" or "Ayat 1-5 Theme" (Anchored to start)
+            if (preg_match('/^Ayat\\s*(\\d+)\\s*-\\s*(\\d+)\\s*[:.]?\\s*(.*)/i', $cleanText, $matches)) {
                 $ayahStart = (int)$matches[1];
                 $ayahEnd = (int)$matches[2];
                 $label = trim($matches[3]);
                 $type = 'ayah_group';
             } 
-            // Pattern: "Ayat 1: Theme"
-            elseif (preg_match('/Ayat\\s*(\\d+)\\s*[:.]?\\s*(.*)/i', $cleanText, $matches)) {
+            // Pattern: "Ayat 1: Theme" (Anchored to start)
+            elseif (preg_match('/^Ayat\\s*(\\d+)\\s*[:.]?\\s*(.*)/i', $cleanText, $matches)) {
                 $ayahStart = (int)$matches[1];
                 $ayahEnd = (int)$matches[1];
                 $label = trim($matches[2]);
                 $type = 'ayah_group';
-            } else {
+            }
+            // Pattern: "Theme: Ayat 1-4" (Inverted format found in Al-Fatihah)
+            elseif (preg_match('/(.*?)[:.]?\\s*Ayat\\s*(\\d+)\\s*-\\s*(\\d+)/i', $cleanText, $matches)) {
+                $ayahStart = (int)$matches[2];
+                $ayahEnd = (int)$matches[3];
+                $label = trim($matches[1], " \n\r\t\v\0:.");
+                $type = 'ayah_group';
+            }
+            // Pattern: "Theme: Ayat 5" (Inverted single ayah)
+            elseif (preg_match('/(.*?)[:.]?\\s*Ayat\\s*(\\d+)/i', $cleanText, $matches)) {
+                $ayahStart = (int)$matches[2];
+                $ayahEnd = (int)$matches[2];
+                $label = trim($matches[1], " \n\r\t\v\0:.");
+                $type = 'ayah_group';
+            }
+            // Pattern: "Theme: 1-4" (Inverted, missing "Ayat" keyword) - Catch "Kurikulum kehidupan: 6-7"
+            elseif (preg_match('/(.*?)[:.]\\s*(\\d+)\\s*-\\s*(\\d+)/i', $cleanText, $matches)) {
+                 $ayahStart = (int)$matches[2];
+                 $ayahEnd = (int)$matches[3];
+                 $label = trim($matches[1], " \n\r\t\v\0:.");
+                 $type = 'ayah_group';
+             }
+ else {
                 $label = $cleanText;
             }
 

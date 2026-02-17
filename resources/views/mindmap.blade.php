@@ -233,24 +233,37 @@
             const tree = d3.tree().nodeSize([80, 400]); 
             const treeData = tree(root);
 
-            // Compute the new tree layout.
-            const nodes = treeData.descendants();
-            const links = treeData.links();
+                // Compute the new tree layout.
+                const nodes = treeData.descendants();
+                const links = treeData.links();
 
-            // Normalize for fixed-depth with increased horizontal spacing
-            nodes.forEach(d => { d.y = d.depth * 450; }); 
+                // Normalize for fixed-depth with increased horizontal spacing
+                nodes.forEach(d => { 
+                    // Depth 0: Wrapper (Hidden)
+                    // Depth 1: Surah Root (Visual Root) -> y = 0
+                    // Depth 2: Level 1 -> y = 550 (Extra space for Root text)
+                    // Depth 3+: Standard spacing
+                    if (d.depth <= 1) {
+                        d.y = 0;
+                    } else if (d.depth === 2) {
+                        d.y = 550; 
+                    } else {
+                        d.y = 550 + (d.depth - 2) * 450;
+                    }
+                }); 
 
             // Removed force simulation to ensure perfectly aligned tree structure
             // relying on d3.tree() for neatness
 
             // ****************** Nodes section ***************************
 
+            // Filter out depth 0 (Wrapper) ONLY. Show Depth 1 (Surah Root)
             const node = g.selectAll('g.node')
-                .data(nodes, d => d.id || (d.id = ++i));
+                .data(nodes.filter(d => d.depth > 0), d => d.id || (d.id = ++i));
 
             // Enter any new modes at the parent's previous position.
             const nodeEnter = node.enter().append('g')
-                .attr('class', d => 'node ' + (d.depth === 0 ? 'root' : '') + (d._children ? ' collapsed' : ''))
+                .attr('class', d => 'node ' + (d.depth === 1 ? 'root' : '') + (d._children ? ' collapsed' : ''))
                 .attr("transform", d => `translate(${source.y0},${source.x0})`)
                 .on('click', click)
                 .call(d3.drag()
@@ -273,17 +286,40 @@
                 .style("fill-opacity", 1e-6);
 
 
-            textGroup.append('tspan')
-                .attr("class", "node-label")
-                .text(d => d.data.name)
-                .attr("x", 15)
-                .attr("dy", d => d.data.ayah_range ? "-0.2em" : "0.35em");
+            textGroup.each(function(d) {
+                const el = d3.select(this);
+                // Wrap long text for Root Node (Depth 1) ONLY
+                if (d.depth === 1 && d.data.name.length > 50) {
+                    const words = d.data.name.split(/\s+/).reverse();
+                    let word, line = [], lineNumber = 0, lineHeight = 1.1, y = 0, dy = 0;
+                    let tspan = el.text(null).append("tspan").attr("x", 15).attr("y", y).attr("dy", dy + "em").attr("class", "node-label");
+                    
+                    while (word = words.pop()) {
+                        line.push(word);
+                        tspan.text(line.join(" "));
+                        if (tspan.node().getComputedTextLength() > 300) { // Max width for root
+                            line.pop();
+                            tspan.text(line.join(" "));
+                            line = [word];
+                            tspan = el.append("tspan").attr("x", 15).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word).attr("class", "node-label");
+                        }
+                    }
+                    // Adjust rect height based on lines
+                    d.lines = lineNumber + 1;
+                } else {
+                    el.append('tspan')
+                        .attr("class", "node-label")
+                        .text(d.data.name)
+                        .attr("x", 15)
+                        .attr("dy", d.data.ayah_range ? "-0.2em" : "0.35em");
+                }
+            });
 
             textGroup.append('tspan')
                 .attr("class", "ayah-range")
                 .text(d => d.data.ayah_range || "")
                 .attr("x", 15)
-                .attr("dy", d => d.data.ayah_range ? "1.4em" : "0");
+                .attr("dy", d => d.depth === 1 ? "1.4em" : (d.data.ayah_range ? "1.4em" : "0")); // Push down for wrapped text
 
             // UPDATE
             const nodeUpdate = nodeEnter.merge(node);
@@ -296,16 +332,18 @@
             // Update the node attributes and style
             nodeUpdate.select('rect')
                 .attr('width', d => {
-                    // Calculate width based on text with more generous padding
-                    // Increased multiplier from 7 to 8 for better accuracy
+                    if (d.depth === 1) return 350; // Fixed width for Root
+                    
                     const labelLen = d.data.name.length * 8; 
                     const rangeLen = (d.data.ayah_range || "").length * 7;
-                    // Increased padding from 30 to 50 to prevent cutoff
                     return Math.max(180, Math.max(labelLen, rangeLen) + 50);
                 })
-                .attr('height', d => d.data.ayah_range ? 54 : 44) // Slight increase
-                .attr('y', d => d.data.ayah_range ? -27 : -22)
-                .attr('class', d => (d.depth === 0 ? 'root' : '') + (d._children ? ' collapsed' : ''));
+                .attr('height', d => {
+                    if (d.depth === 1) return (d.lines || 1) * 20 + 40; // Dynamic height for Root
+                    return d.data.ayah_range ? 54 : 44;
+                }) 
+                .attr('y', d => d.depth === 1 ? -((d.lines || 1) * 10 + 10) : (d.data.ayah_range ? -27 : -22))
+                .attr('class', d => (d.depth === 1 ? 'root' : '') + (d._children ? ' collapsed' : ''));
 
             nodeUpdate.select('text')
                 .style("fill-opacity", 1);
@@ -326,14 +364,15 @@
 
             // ****************** Links section ***************************
 
+            // Filter out links connected to Wrapper (depth 0)
             const link = g.selectAll('path.link')
-                .data(links, d => d.target.id);
+                .data(links.filter(d => d.source.depth > 0), d => d.target.id);
 
             // Enter any new links at the parent's previous position.
             const linkEnter = link.enter().insert('path', "g")
                 .attr("class", "link")
                 .attr('d', d => {
-                     const o = {x: source.x0, y: source.y0, data: source.data};
+                     const o = {x: source.x0, y: source.y0, data: source.data, depth: source.depth};
                      return diagonal(o, o);
                 });
 
@@ -363,20 +402,30 @@
             function diagonal(s, d) {
                 // Horizontal Bezier
                 // Connect to right edge of source and left edge of target
-                // Source Width approximation
+                
                 let sWidth = 0;
-                if (s.data) {
-                    const sLabelLen = (s.data.name || "").length * 7;
-                    const sRangeLen = (s.data.ayah_range || "").length * 6;
-                    sWidth = Math.max(140, Math.max(sLabelLen, sRangeLen) + 30);
+                
+                // Special case for Root Node (Depth 1) which has fixed width 350
+                if (s.depth === 1) {
+                    sWidth = 350;
+                } 
+                // Standard width calculation for other nodes
+                else if (s.data) {
+                    const sLabelLen = (s.data.name || "").length * 8; // Updated multiplier
+                    const sRangeLen = (s.data.ayah_range || "").length * 7;
+                    sWidth = Math.max(180, Math.max(sLabelLen, sRangeLen) + 50);
                 }
                 
-                const path = `M ${s.y + sWidth} ${s.x}
-                        C ${(s.y + sWidth + d.y) / 2} ${s.x},
-                          ${(s.y + sWidth + d.y) / 2} ${d.x},
-                          ${d.y} ${d.x}`;
+                // Control points for bezier curve
+                const sourceX = s.y + sWidth;
+                const sourceY = s.x;
+                const targetX = d.y;
+                const targetY = d.x;
 
-                return path;
+                return `M ${sourceX} ${sourceY}
+                        C ${(sourceX + targetX) / 2} ${sourceY},
+                          ${(sourceX + targetX) / 2} ${targetY},
+                          ${targetX} ${targetY}`;
             }
 
             // Toggle children on click.
@@ -443,15 +492,10 @@
                 root.x0 = document.getElementById('viz-container').clientHeight / 2;
                 root.y0 = 0;
 
-                // Expand all nodes initially as per user request to "expose all if many"
-                // Or maybe just increase spacing.
-                // Let's keep the standard behavior but maybe expand 2 levels deep?
-                // User said: "jika banyak bisa terekspose semua misal di bagi rata gitu"
-                // He might mean "Expand All" or just "Space them out so they are all visible".
-                // I increased nodeSize above (80px).
-                // Collapse all children initially for cleaner view
+                // User requested to show Level 1 and Level 2 immediately.
+                // Force expand all nodes recursively
                 if (root.children) {
-                    root.children.forEach(collapse);
+                    root.children.forEach(expand);
                 }
 
                 update(root);
@@ -469,6 +513,16 @@
             }
         }
 
+        function expand(d) {
+            if (d._children) {
+                d.children = d._children;
+                d._children = null;
+            }
+            if (d.children) {
+                d.children.forEach(expand);
+            }
+        }
+
         function collapse(d) {
             if(d.children) {
                 d._children = d.children
@@ -476,7 +530,6 @@
                 d.children = null
             }
         }
-
         // Fit to Screen button handler
         document.getElementById('fit-screen-btn').addEventListener('click', () => {
             centerNode(root);
@@ -489,43 +542,39 @@
 
         // Zoom Out button handler
         document.getElementById('zoom-out-btn').addEventListener('click', () => {
-            svg.transition().duration(300).call(zoom.scaleBy, 0.7);
+            svg.transition().duration(300).call(zoom.scaleBy, 0.7); // scaleBy is simpler
         });
 
+        function centerTree() {
+            // Get bounding box of all visible nodes
+            // Since we are hiding root/wrapper, we want to center on the visible group
+            const bounds = g.node().getBBox();
+            const parent = svg.node().parentElement;
+            const fullWidth = parent.clientWidth;
+            const fullHeight = parent.clientHeight;
+            
+            const width = bounds.width;
+            const height = bounds.height;
+            const midX = bounds.x + width / 2;
+            const midY = bounds.y + height / 2;
+
+            if (width == 0 || height == 0) return; // Nothing to center
+
+            const scale = 0.85 / Math.max(width / fullWidth, height / fullHeight);
+            const translate = [fullWidth / 2 - scale * midX, fullHeight / 2 - scale * midY];
+
+            svg.transition()
+                .duration(750)
+                .call(zoom.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+        }
+
         function centerNode(source) {
-            const container = document.getElementById('viz-container');
-            const width = container.clientWidth;
-            const height = container.clientHeight;
-            
-            // Calculate bounds of the tree
-            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-            root.each(d => {
-                if (d.x < minX) minX = d.x;
-                if (d.x > maxX) maxX = d.x;
-                if (d.y < minY) minY = d.y;
-                if (d.y > maxY) maxY = d.y;
-            });
-            
-            const treeHeight = maxX - minX + 100; // Add padding
-            const treeWidth = maxY - minY + 300; // Add padding
-
-            // Calculate scale to fit
-            let scale = 1;
-             // If tree is larger than container, shrink it
-            if (treeHeight > height - 40) {
-                 scale = (height - 40) / treeHeight;
-            }
-            // Clamp scale
-            scale = Math.min(1, Math.max(0.2, scale));
-
-            // Center vertically
-            const initialY = (height / 2) - ((minX + maxX) / 2) * scale;
-            const initialX = 50; // Padding left
-
-             const t = d3.zoomIdentity.translate(initialX, initialY).scale(scale);
-            svg.transition().duration(750).call(zoom.transform, t);
+            // Re-use centerTree logic or valid centerNode logic
+            // But centerTree is better for "Fit to Screen"
+            centerTree(); 
         }
 
     </script>
+
 </body>
 </html>
